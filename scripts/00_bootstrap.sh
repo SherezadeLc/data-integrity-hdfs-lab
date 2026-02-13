@@ -1,21 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TODO: Ajusta el nombre del contenedor namenode si difiere
 NN_CONTAINER=${NN_CONTAINER:-namenode}
-
-# Fecha de trabajo (dt=YYYY-MM-DD). Por defecto hoy.
 DT=${DT:-$(date +%F)}
 
 echo "[bootstrap] DT=$DT"
+echo "[bootstrap] Creando estructura base en HDFS..."
 
-# TODO: Crea la estructura HDFS base:
-#   /data/logs/raw/dt=$DT/
-#   /data/iot/raw/dt=$DT/
-#   /backup/... (si Variante A)
-#   /audit/fsck/$DT/
-#   /audit/inventory/$DT/
-# Pista:
-#   docker exec -it $NN_CONTAINER bash -lc "hdfs dfs -mkdir -p ..."
+docker exec -it $NN_CONTAINER bash -lc "
+  hdfs dfs -mkdir -p /data/logs/raw/dt=$DT
+  hdfs dfs -mkdir -p /data/iot/raw/dt=$DT
+  hdfs dfs -mkdir -p /backup/logs/raw/dt=$DT
+  hdfs dfs -mkdir -p /backup/iot/raw/dt=$DT
+  hdfs dfs -mkdir -p /audit/fsck/$DT
+  hdfs dfs -mkdir -p /audit/inventory/$DT
+"
 
-echo "[bootstrap] TODO completarlo."
+echo "[bootstrap] Estructura creada correctamente."

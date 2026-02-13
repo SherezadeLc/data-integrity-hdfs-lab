@@ -1,20 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NN_CONTAINER=${NN_CONTAINER:-namenode}
 DT=${DT:-$(date +%F)}
-LOCAL_DIR=${LOCAL_DIR:-./data_local/$DT}
+LOCAL_DIR="./local_data/$DT"
 
 echo "[ingest] DT=$DT"
 echo "[ingest] Local dir=$LOCAL_DIR"
 
-# TODO:
-# 1) Subir a HDFS en:
-#    /data/logs/raw/dt=$DT/
-#    /data/iot/raw/dt=$DT/
-# 2) Mostrar evidencias con -ls y -du
+if [ ! -d "$LOCAL_DIR" ]; then
+  echo "[ingest] ERROR: No existe $LOCAL_DIR. Ejecuta antes 10_generate_data.sh"
+  exit 1
+fi
 
-# Pista:
-# docker exec -it $NN_CONTAINER bash -lc "hdfs dfs -put -f ..."
+# Nombre del contenedor del NameNode
+NN_CONTAINER="namenode"
 
-echo "[ingest] TODO completarlo."
+echo "[ingest] Copiando datos al contenedor..."
+docker cp "$LOCAL_DIR" "$NN_CONTAINER:/tmp/"
+
+echo "[ingest] Creando rutas en HDFS..."
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs dfs -mkdir -p /data/logs/raw/dt=$DT;
+  hdfs dfs -mkdir -p /data/iot/raw/dt=$DT;
+"
+
+echo "[ingest] Subiendo datos a HDFS..."
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs dfs -put /tmp/$DT/logs/* /data/logs/raw/dt=$DT/;
+  hdfs dfs -put /tmp/$DT/iot/*  /data/iot/raw/dt=$DT/;
+"
+
+echo "[ingest] Ingesta completada correctamente."

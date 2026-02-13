@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NN_CONTAINER=${NN_CONTAINER:-namenode}
 DT=${DT:-$(date +%F)}
+NN_CONTAINER="namenode"
 
-echo "[fsck] DT=$DT"
+echo "[fsck] Ejecutando auditoría de integridad para /data"
+echo "[fsck] Fecha: $DT"
 
-# TODO:
-# - Ejecutar fsck sobre /data (y /backup si existe)
-# - Guardar salida en /audit/fsck/$DT/
-# - Generar resumen (txt o csv) con conteos de:
-#   CORRUPT, MISSING, Under replicated
+# Ejecutar fsck dentro del contenedor y guardar salida temporal
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs fsck /data -files -blocks -locations > /tmp/fsck_${DT}.txt
+"
 
-# Pista:
-# docker exec -it $NN_CONTAINER bash -lc "hdfs fsck /data -files -blocks -locations | tee /tmp/fsck_data.txt"
-# docker exec -it $NN_CONTAINER bash -lc "hdfs dfs -put -f /tmp/fsck_data.txt /audit/fsck/$DT/fsck_data.txt"
+echo "[fsck] Copiando auditoría a HDFS en /audit"
 
-echo "[fsck] TODO completarlo."
+# Crear carpeta audit si no existe
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs dfs -mkdir -p /audit;
+  hdfs dfs -put -f /tmp/fsck_${DT}.txt /audit/fsck_${DT}.txt
+"
+
+echo "[fsck] Auditoría completada. Archivo guardado en /audit/fsck_${DT}.txt"

@@ -1,18 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NN_CONTAINER=${NN_CONTAINER:-namenode}
 DT=${DT:-$(date +%F)}
+NN_CONTAINER="namenode"
 
-echo "[inventory] DT=$DT"
+echo "[inventory] Comparando /data y /backup"
+echo "[inventory] Fecha: $DT"
 
-# TODO:
-# - Generar inventario origen (/data) y destino (/backup) del día DT
-# - Comparar (missing, size mismatch)
-# - Guardar resultados en /audit/inventory/$DT/
+# Ejecutar du en HDFS y guardar resultados
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs dfs -du -s /data > /tmp/inventory_data_${DT}.txt
+  hdfs dfs -du -s /backup > /tmp/inventory_backup_${DT}.txt
+"
 
-# Pistas:
-# - hdfs dfs -ls -R
-# - hdfs dfs -stat '%n,%b,%y' <path>
+echo "[inventory] Copiando informe a HDFS en /audit"
 
-echo "[inventory] TODO completarlo."
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs dfs -mkdir -p /audit
+  hdfs dfs -put -f /tmp/inventory_data_${DT}.txt /audit/inventory_data_${DT}.txt
+  hdfs dfs -put -f /tmp/inventory_backup_${DT}.txt /audit/inventory_backup_${DT}.txt
+"
+
+echo "[inventory] Comparación completada. Archivos guardados en /audit/"

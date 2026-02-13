@@ -1,16 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Variante A (base): copiar dentro del mismo clúster a /backup
-# Variante B (avanzada): usar DistCp hacia otro clúster (no incluido en este starter)
-
-NN_CONTAINER=${NN_CONTAINER:-namenode}
 DT=${DT:-$(date +%F)}
+NN_CONTAINER="namenode"
 
-echo "[backup] DT=$DT"
+echo "[backup] Creando copia de seguridad de /data en /backup"
+echo "[backup] Fecha: $DT"
 
-# TODO (Variante A):
-# - Copiar /data/.../dt=$DT/ -> /backup/.../dt=$DT/
-# - Registrar logs y validar que existen rutas en destino
+# Crear carpeta /backup si no existe
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs dfs -mkdir -p /backup
+"
 
-echo "[backup] TODO completarlo."
+# Copiar datos preservando permisos (-p)
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs dfs -cp -p /data/* /backup/
+"
+
+echo "[backup] Copia completada. Validando contenido..."
+
+# Listar contenido para verificar
+docker exec -it $NN_CONTAINER bash -c "
+  hdfs dfs -ls -R /backup
+"
+
+echo "[backup] Backup finalizado correctamente."
